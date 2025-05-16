@@ -58,34 +58,82 @@ def run_notebook(notebook_path, output_path="executed_notebook.ipynb"):
             nbformat.write(notebook, f)
 
         print("Notebook executed successfully.")
+        return None
 
     except Exception as e:
         print(f"Error occurred while executing the notebook:\n{e}")
+        return e
 
 
-def main(data_folder):
-    genai.configure(api_key="")
+def run_notebook_with_retry(model, retry_num, input_file, output_file, original_objective):
+    retry = 0
+    while True:
+        if retry >= retry_num:
+            raise RuntimeError("The number of retries has exceeded the limit.")
+        error_msg = run_notebook(input_file, output_file)
+        if error_msg is None:
+            break
+        else:
+            response = model.generate_content(
+                [
+                    "Fix attached file and output python code as markdown. Error message is here. {0} Original objective is here. {1}".format(error_msg, original_objective),
+                    output_file
+                ]
+            )
+            markdown_to_notebook(response.text, input_file)
+            retry += 1
 
-    for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-            print(m.name)
+
+def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
+    genai.configure(api_key=api_key)
+
+    # for m in genai.list_models():
+    #     if "generateContent" in m.supported_generation_methods:
+    #         print(m.name)
 
     model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
 
     train_data = os.path.join(data_folder, "train.csv")
+    test_data = os.path.join(data_folder, "test.csv")
+    submission_data = os.path.join(data_folder, "gender_submission.csv")
+
+    original_objective = (
+        "First read this link. {0} Also, create python code to achieve following goals as markdown. Data is located in {1}\n"
+        "Problem definition: autonomously understand business problems and data science tasks\n"
+        "Data exploration: understand, preprocess, and visualize data\n"
+        "Feature Engineering: Creation of valid features"
+        "Model Selection: Model selection and hyper-parameter tuning according to the problem\n"
+        "Evaluation and improvement: Evaluate and improve model performance\n"
+        "Reporting: reporting results and presenting insights".format(detail_web_link, data_folder)
+    )
 
     response = model.generate_content(
         [
-            "Create python code to predict whether person can survive or not as Markdown.",
+            original_objective,
             train_data
         ]
     )
-    print(response.text)
-    markdown_to_notebook(response.text, "generated_with_gemini.ipynb")
+    markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
+    run_notebook_with_retry(model, retry_num, "generated_with_gemini_0.ipynb", "executed_notebook_0.ipynb", original_objective)
 
-    run_notebook("generated_with_gemini.ipynb")
+    # TODO: Save current accuracy and compare result
+
+    for i in range(iter_num):
+        response = model.generate_content(
+            [
+                "Read attached jupyter notebook, and plan how to improve evaluation score. After that, implement python code to improve evaluation score as markdown.\n"
+                "Original objective is here. {0}".format(original_objective),
+                "executed_notebook_{0}.ipynb".format(i)
+            ]
+        )
+        markdown_to_notebook(response.text, "generated_with_gemini_{0}.ipynb".format(i + 1))
+        run_notebook_with_retry(model, retry_num, "generated_with_gemini_{0}.ipynb".format(i + 1), "executed_notebook_{0}.ipynb".format(i + 1), original_objective)
 
 
 if __name__ == "__main__":
+    api_key = ""
     data_folder = "data/titanic"
-    main(data_folder)
+    detail_web_link = "https://www.kaggle.com/competitions/titanic"
+    iter_num = 5
+    retry_num = 5
+    main(api_key, data_folder, detail_web_link, iter_num, retry_num)
