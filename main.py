@@ -3,6 +3,7 @@ import nbformat
 from pathlib import Path
 import re
 import os
+import json
 from nbconvert.preprocessors import ExecutePreprocessor
 
 
@@ -84,6 +85,15 @@ def run_notebook_with_retry(model, retry_num, input_file, output_file, original_
             retry += 1
 
 
+def load_accuracy(path):
+    """Load the accuracy from a JSON file."""
+    if not os.path.exists(path):
+        return 0.0
+    with open(path, "r") as f:
+        data = json.load(f)
+        return data.get("accuracy", 0.0)
+
+
 def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
     genai.configure(api_key=api_key)
 
@@ -98,7 +108,7 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
     submission_data = os.path.join(data_folder, "gender_submission.csv")
 
     original_objective = (
-        "First read this link. {0} Also, create python code to achieve following goals as markdown. Data is located in {1}\n"
+        "First read this link. {0} Also, create python code to achieve following goals as markdown. Data is located in {1}. Save the best accuracy value as a json file in accuracy.json with key as “accuracy” and value as the accuracy value.\n"
         "Problem definition: autonomously understand business problems and data science tasks\n"
         "Data exploration: understand, preprocess, and visualize data\n"
         "Feature Engineering: Creation of valid features"
@@ -115,8 +125,8 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
     )
     markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
     run_notebook_with_retry(model, retry_num, "generated_with_gemini_0.ipynb", "executed_notebook_0.ipynb", original_objective)
-
-    # TODO: Save current accuracy and compare result
+    acc_path = "accuracy.json"
+    max_acc = load_accuracy(acc_path)
 
     for i in range(iter_num):
         response = model.generate_content(
@@ -128,6 +138,10 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
         )
         markdown_to_notebook(response.text, "generated_with_gemini_{0}.ipynb".format(i + 1))
         run_notebook_with_retry(model, retry_num, "generated_with_gemini_{0}.ipynb".format(i + 1), "executed_notebook_{0}.ipynb".format(i + 1), original_objective)
+        acc = load_accuracy(acc_path)
+        max_acc = max(max_acc, acc)
+        i += 1
+        print("{0}: Max accuracy {1}".format(i, max_acc))
 
 
 if __name__ == "__main__":
