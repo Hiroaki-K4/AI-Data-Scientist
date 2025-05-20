@@ -1,9 +1,10 @@
+import json
+import os
+import re
+from pathlib import Path
+
 import google.generativeai as genai
 import nbformat
-from pathlib import Path
-import re
-import os
-import json
 from nbconvert.preprocessors import ExecutePreprocessor
 
 
@@ -16,13 +17,13 @@ def markdown_to_notebook(md_text: str, output_path: str):
         output_path: Path where the .ipynb will be written.
     """
     # Split text into segments: code fences vs. other markdown
-    parts = re.split(r'(```python.*?```)', md_text, flags=re.S)
+    parts = re.split(r"(```python.*?```)", md_text, flags=re.S)
     cells = []
 
     for part in parts:
-        if part.startswith('```python'):
+        if part.startswith("```python"):
             # Strip the fence markers, leave only the code
-            code = re.sub(r'```python\n?|```', '', part).strip()
+            code = re.sub(r"```python\n?|```", "", part).strip()
             cells.append(nbformat.v4.new_code_cell(code))
         elif part.strip():
             # Anything else becomes a markdown cell
@@ -36,7 +37,7 @@ def markdown_to_notebook(md_text: str, output_path: str):
     out.parent.mkdir(parents=True, exist_ok=True)
 
     # Write the .ipynb file
-    with open(out, 'w', encoding='utf-8') as f:
+    with open(out, "w", encoding="utf-8") as f:
         nbformat.write(nb, f)
 
     print(f"Notebook written to: {output_path}")
@@ -49,13 +50,13 @@ def run_notebook(notebook_path, output_path="executed_notebook.ipynb"):
             notebook = nbformat.read(f, as_version=4)
 
         # Set up the execution processor
-        ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
+        ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
 
         # Run the notebook
         ep.preprocess(notebook)
 
         # Save the executed notebook
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             nbformat.write(notebook, f)
 
         print("Notebook executed successfully.")
@@ -66,7 +67,9 @@ def run_notebook(notebook_path, output_path="executed_notebook.ipynb"):
         return e
 
 
-def run_notebook_with_retry(model, retry_num, input_file, output_file, original_objective):
+def run_notebook_with_retry(
+    model, retry_num, input_file, output_file, original_objective
+):
     retry = 0
     while True:
         if retry >= retry_num:
@@ -77,8 +80,10 @@ def run_notebook_with_retry(model, retry_num, input_file, output_file, original_
         else:
             response = model.generate_content(
                 [
-                    "Fix attached file and output python code as markdown. Error message is here. {0} Original objective is here. {1}".format(error_msg, original_objective),
-                    output_file
+                    "Fix attached file and output python code as markdown. Error message is here. {0} Original objective is here. {1}".format(
+                        error_msg, original_objective
+                    ),
+                    output_file,
                 ]
             )
             markdown_to_notebook(response.text, input_file)
@@ -96,16 +101,9 @@ def load_accuracy(path):
 
 def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
     genai.configure(api_key=api_key)
-
-    # for m in genai.list_models():
-    #     if "generateContent" in m.supported_generation_methods:
-    #         print(m.name)
-
     model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
 
     train_data = os.path.join(data_folder, "train.csv")
-    test_data = os.path.join(data_folder, "test.csv")
-    submission_data = os.path.join(data_folder, "gender_submission.csv")
 
     original_objective = (
         "First read this link. {0} Also, create python code to achieve following goals as markdown. Data is located in {1}. Save the best accuracy value as a json file in accuracy.json with key as “accuracy” and value as the accuracy value.\n"
@@ -114,17 +112,20 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
         "Feature Engineering: Creation of valid features"
         "Model Selection: Model selection and hyper-parameter tuning according to the problem\n"
         "Evaluation and improvement: Evaluate and improve model performance\n"
-        "Reporting: reporting results and presenting insights".format(detail_web_link, data_folder)
+        "Reporting: reporting results and presenting insights".format(
+            detail_web_link, data_folder
+        )
     )
 
-    response = model.generate_content(
-        [
-            original_objective,
-            train_data
-        ]
-    )
+    response = model.generate_content([original_objective, train_data])
     markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
-    run_notebook_with_retry(model, retry_num, "generated_with_gemini_0.ipynb", "executed_notebook_0.ipynb", original_objective)
+    run_notebook_with_retry(
+        model,
+        retry_num,
+        "generated_with_gemini_0.ipynb",
+        "executed_notebook_0.ipynb",
+        original_objective,
+    )
     acc_path = "accuracy.json"
     max_acc = load_accuracy(acc_path)
 
@@ -133,11 +134,19 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
             [
                 "Read attached jupyter notebook, and plan how to improve evaluation score. After that, implement python code to improve evaluation score as markdown.\n"
                 "Original objective is here. {0}".format(original_objective),
-                "executed_notebook_{0}.ipynb".format(i)
+                "executed_notebook_{0}.ipynb".format(i),
             ]
         )
-        markdown_to_notebook(response.text, "generated_with_gemini_{0}.ipynb".format(i + 1))
-        run_notebook_with_retry(model, retry_num, "generated_with_gemini_{0}.ipynb".format(i + 1), "executed_notebook_{0}.ipynb".format(i + 1), original_objective)
+        markdown_to_notebook(
+            response.text, "generated_with_gemini_{0}.ipynb".format(i + 1)
+        )
+        run_notebook_with_retry(
+            model,
+            retry_num,
+            "generated_with_gemini_{0}.ipynb".format(i + 1),
+            "executed_notebook_{0}.ipynb".format(i + 1),
+            original_objective,
+        )
         acc = load_accuracy(acc_path)
         max_acc = max(max_acc, acc)
         i += 1
