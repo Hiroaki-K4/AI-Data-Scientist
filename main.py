@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import yaml
 from pathlib import Path
 
 import google.generativeai as genai
@@ -90,34 +91,38 @@ def run_notebook_with_retry(
             retry += 1
 
 
-def load_accuracy(path):
-    """Load the accuracy from a JSON file."""
+def load_eval_score(path):
+    """Load the evaluation score from a JSON file."""
     if not os.path.exists(path):
         return 0.0
     with open(path, "r") as f:
         data = json.load(f)
-        return data.get("accuracy", 0.0)
+        return data.get("eval_score", 0.0)
 
 
-def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
+def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_num):
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
+    model = genai.GenerativeModel(model_name)
 
-    train_data = os.path.join(data_folder, "train.csv")
+    data_folder = os.path.dirname(train_data_path)
+    eval_score_path = "eval_score.json"
 
     original_objective = (
-        "First read this link. {0} Also, create python code to achieve following goals as markdown. Data is located in {1}. Save the best accuracy value as a json file in accuracy.json with key as “accuracy” and value as the accuracy value.\n"
+        "First read this link. {0} Also, create python code to achieve following goals as markdown."
+        "Data is located in {1}. Save the best evaluation score as a json file in {2} with key as “eval_score” and value as the evaluation value."
+        "Seed of random value should be 42. For evaluation, 80% of the data will be split for training and 20% for validation."
+        "The file is stored in the current hierarchy without creating new directory.\n"
         "Problem definition: autonomously understand business problems and data science tasks\n"
         "Data exploration: understand, preprocess, and visualize data\n"
         "Feature Engineering: Creation of valid features"
         "Model Selection: Model selection and hyper-parameter tuning according to the problem\n"
         "Evaluation and improvement: Evaluate and improve model performance\n"
         "Reporting: reporting results and presenting insights".format(
-            detail_web_link, data_folder
+            detail_web_link, data_folder, eval_score_path
         )
     )
 
-    response = model.generate_content([original_objective, train_data])
+    response = model.generate_content([original_objective, train_data_path])
     markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
     run_notebook_with_retry(
         model,
@@ -126,8 +131,8 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
         "executed_notebook_0.ipynb",
         original_objective,
     )
-    acc_path = "accuracy.json"
-    max_acc = load_accuracy(acc_path)
+    eval_score = load_eval_score(eval_score_path)
+    print("0: Evaluation score {0}".format(eval_score))
 
     for i in range(iter_num):
         response = model.generate_content(
@@ -147,16 +152,17 @@ def main(api_key, data_folder, detail_web_link, iter_num, retry_num):
             "executed_notebook_{0}.ipynb".format(i + 1),
             original_objective,
         )
-        acc = load_accuracy(acc_path)
-        max_acc = max(max_acc, acc)
-        i += 1
-        print("{0}: Max accuracy {1}".format(i, max_acc))
+        eval_score = load_eval_score(eval_score_path)
+        print("{0}: Evaluation score {1}".format(i + 1, eval_score))
 
 
 if __name__ == "__main__":
-    api_key = ""
-    data_folder = "data/titanic"
-    detail_web_link = "https://www.kaggle.com/competitions/titanic"
-    iter_num = 5
-    retry_num = 5
-    main(api_key, data_folder, detail_web_link, iter_num, retry_num)
+    with open("config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+
+    main(config["setting"]["api_key"],
+         config["setting"]["train_data_path"],
+         config["setting"]["detail_web_link"],
+         config["setting"]["model_name"],
+         config["setting"]["iter_num"],
+         config["setting"]["retry_num"])
