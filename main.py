@@ -81,7 +81,8 @@ def run_notebook_with_retry(
         else:
             response = model.generate_content(
                 [
-                    "Fix attached file and output python code as markdown. Error message is here. {0} Original objective is here. {1}".format(
+                    "Fix the attached file and output the Python code as markdown."
+                    "The error message is: {0}. The original objective is: {1}".format(
                         error_msg, original_objective
                     ),
                     output_file,
@@ -108,19 +109,17 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
     eval_score_path = "eval_score.json"
 
     original_objective = (
-        "First read this link. {0} Also, create python code to achieve following goals as markdown."
-        "Data is located in {1}. Save the best evaluation score as a json file in {2} with key as “eval_score” and value as the evaluation value."
-        "Seed of random value should be 42. For evaluation, 80% of the data will be split for training and 20% for validation."
-        "The file is stored in the current hierarchy without creating new directory.\n"
-        "Problem definition: autonomously understand business problems and data science tasks\n"
-        "Data exploration: understand, preprocess, and visualize data\n"
-        "Feature Engineering: Creation of valid features"
-        "Model Selection: Model selection and hyper-parameter tuning according to the problem\n"
-        "Evaluation and improvement: Evaluate and improve model performance\n"
-        "Reporting: reporting results and presenting insights".format(
-            detail_web_link, data_folder, eval_score_path
-        )
-    )
+        "First, read this link: {0}. Also, create Python code to achieve the following goals in markdown format. "
+        "The data is located at {1}. Save the best evaluation score as a JSON file in {2}, using the key 'eval_score' and the evaluation value as the value. "
+        "Use a random seed of 42. For evaluation, split 80% of the data for training and 20% for validation. "
+        "The file should be stored in the current directory without creating a new one.\n\n"
+        "Problem Definition: Autonomously understand data science problems\n"
+        "Data Exploration: Understand, preprocess, and visualize the data\n"
+        "Feature Engineering: Create valid features\n"
+        "Model Selection: Select a model and perform hyperparameter tuning based on the problem\n"
+        "Evaluation and Improvement: Evaluate and improve model performance\n"
+        "Reporting: Report results and present insights."
+    ).format(detail_web_link, data_folder, eval_score_path)
 
     response = model.generate_content([original_objective, train_data_path])
     markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
@@ -137,8 +136,9 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
     for i in range(iter_num):
         response = model.generate_content(
             [
-                "Read attached jupyter notebook, and plan how to improve evaluation score. After that, implement python code to improve evaluation score as markdown.\n"
-                "Original objective is here. {0}".format(original_objective),
+                "Read the attached Jupyter notebook and plan how to improve the evaluation score."
+                "Then, implement Python code to improve the evaluation score in markdown format.\n"
+                "The original objective is: {0}".format(original_objective),
                 "executed_notebook_{0}.ipynb".format(i),
             ]
         )
