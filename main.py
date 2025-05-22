@@ -102,6 +102,8 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
     data_folder = os.path.dirname(train_data_path)
     eval_score_path = "eval_score.json"
 
+    eval_info = model.generate_content(contents=["Explain simply what the evaluation metrics are by reading this link {0}".format(detail_web_link)])
+
     original_objective = (
         "First, read this link: {0}. Also, create Python code to achieve the following goals in markdown format. "
         "The data is located at {1}. Save the best evaluation score as a JSON file in {2}, using the key 'eval_score' and the evaluation value as the value. "
@@ -111,9 +113,9 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
         "Data Exploration: Understand, preprocess, and visualize the data\n"
         "Feature Engineering: Create valid features\n"
         "Model Selection: Select a model and perform hyperparameter tuning based on the problem\n"
-        "Evaluation and Improvement: Evaluate and improve model performance\n"
+        "Evaluation and Improvement: Evaluate and improve model performance. Explanation of evaluation is as follows. {3}\n"
         "Reporting: Report results and present insights."
-    ).format(detail_web_link, data_folder, eval_score_path)
+    ).format(detail_web_link, data_folder, eval_score_path, eval_info)
 
     response = model.generate_content([original_objective, train_data_path])
     markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
