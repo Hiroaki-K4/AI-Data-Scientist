@@ -1,11 +1,11 @@
 import json
 import os
 import re
-import yaml
 from pathlib import Path
 
 import google.generativeai as genai
 import nbformat
+import yaml
 from nbconvert.preprocessors import ExecutePreprocessor
 
 
@@ -20,7 +20,6 @@ def markdown_to_notebook(md_text: str, output_path: str):
     # Split text into segments: code fences vs. other markdown
     parts = re.split(r"(```python.*?```)", md_text, flags=re.S)
     cells = []
-
     for part in parts:
         if part.startswith("```python"):
             # Strip the fence markers, leave only the code
@@ -32,11 +31,9 @@ def markdown_to_notebook(md_text: str, output_path: str):
 
     # Assemble the notebook object
     nb = nbformat.v4.new_notebook(cells=cells)
-
     # Ensure output directory exists
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-
     # Write the .ipynb file
     with open(out, "w", encoding="utf-8") as f:
         nbformat.write(nb, f)
@@ -49,13 +46,10 @@ def run_notebook(notebook_path, output_path="executed_notebook.ipynb"):
         # Load the notebook
         with open(notebook_path) as f:
             notebook = nbformat.read(f, as_version=4)
-
         # Set up the execution processor
         ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
-
         # Run the notebook
         ep.preprocess(notebook)
-
         # Save the executed notebook
         with open(output_path, "w") as f:
             nbformat.write(notebook, f)
@@ -160,9 +154,11 @@ if __name__ == "__main__":
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    main(config["setting"]["api_key"],
-         config["setting"]["train_data_path"],
-         config["setting"]["detail_web_link"],
-         config["setting"]["model_name"],
-         config["setting"]["iter_num"],
-         config["setting"]["retry_num"])
+    main(
+        config["setting"]["api_key"],
+        config["setting"]["train_data_path"],
+        config["setting"]["detail_web_link"],
+        config["setting"]["model_name"],
+        config["setting"]["iter_num"],
+        config["setting"]["retry_num"],
+    )
