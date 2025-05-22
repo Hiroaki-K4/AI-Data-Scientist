@@ -5,12 +5,12 @@ In this repogitory, we can try AI data scientist that behaves as a data scientis
 
 <br></br>
 
-## How to work
+# How to work
 The flow of AI data scientist is as follows.
 
 <img src='images/flow.png' width='500'>
 
-### 1. Create the code
+## 1. Create the code
 Gemini api creates a code to solve a data science problem. Input prompt for gemini is as follows. `detail_web_link` is the link that explains a data science problem. `data_folder` is the folder that includes training data. `eval_score_path` is the file path that stores an evaluation score.
 
 ```python
@@ -30,10 +30,10 @@ original_objective = (
 
 Output of gemini api is written in markdown format, so we create a jupyter notebook from markdown format's string.
 
-### 2. Run the code
+## 2. Run the code
 After creating a jupyter notebook, we run it by using [nbformat](https://github.com/jupyter/nbformat).
 
-### 3. Fix the code
+## 3. Fix the code
 If errors occur during running code, AI data scientist fix errors itself. We pass an error message and previous jupyter notebook path to gemini api, and re-create a jupyter notebook.
 
 ```python
@@ -48,7 +48,7 @@ response = model.generate_content(
 )
 ```
 
-### 4. Improve the code
+## 4. Improve the code
 If error doesn't occur, we re-create a code to improve an evaluation score. Prompt for gemini api is as follows.
 
 ```python
@@ -64,7 +64,7 @@ response = model.generate_content(
 
 <br></br>
 
-## How to run
+# How to run
 You can create an environment with `requirements.txt`. We used python 3.10 to run a program.
 
 We can configure information about AI data scientist by editting `config.yaml`. Items of configulation are as follows.
@@ -88,7 +88,27 @@ python3 main.py
 
 <br></br>
 
-## References
+# Examples
+We show some examples with AI data scientist.
+
+## 1. [Titanic - Machine Learning from Disaster](https://www.kaggle.com/competitions/titanic)
+This is one of the famous kaggle competitions that we predict who survive by using various information. The below table shows how AI data scientist try that competition.
+
+| Number of attempts | Method                                      | Evaluation score(accuracy) |
+|--------------------|---------------------------------------------|----------------------------|
+| 0                  | Gradient boosting, Grid search              | 0.7989                     |
+| 1                  | Random forest                               | 0.7989                     |
+| 2                  | Feature scaling, Random forest              | 0.8380                     |
+| 3                  | Random forest                               | 0.8268                     |
+| 4                  | Add feature, Random forest                  | 0.8547                     |
+| 5                  | Logistic regression, Grid search            | 0.8324                     |
+
+## 2. [New York City Taxi Trip Duration](https://www.kaggle.com/competitions/nyc-taxi-trip-duration)
+In this competition, we predict taxi trip duration in New York with dataset includes information like pickup and dropoff position. The result is as follows.
+
+<br></br>
+
+# References
 - [AI-Scientist](https://github.com/SakanaAI/AI-Scientist)
 - [Titanic - Machine Learning from Disaster](https://www.kaggle.com/competitions/titanic)
 - [New York City Taxi Trip Duration](https://www.kaggle.com/competitions/nyc-taxi-trip-duration)
