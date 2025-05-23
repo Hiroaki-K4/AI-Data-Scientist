@@ -102,7 +102,13 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
     data_folder = os.path.dirname(train_data_path)
     eval_score_path = "eval_score.json"
 
-    eval_info = model.generate_content(contents=["Explain simply what the evaluation metrics are by reading this link {0}".format(detail_web_link)])
+    eval_info = model.generate_content(
+        contents=[
+            "Explain simply what the evaluation metrics are by reading this link {0}".format(
+                detail_web_link
+            )
+        ]
+    )
 
     original_objective = (
         "First, read this link: {0}. Also, create Python code to achieve the following goals in markdown format. "
