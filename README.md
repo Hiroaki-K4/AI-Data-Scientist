@@ -1,7 +1,8 @@
 # AI-Data-Scientist
 <img src='images/ai_data_scientist.jpg' width='500'>
 
-In this repository, we can try AI data scientist that behaves like a human data scientist. Recently, LLM has been improved a lot, we believe it is now possible for an LLM to solve problems that data scientist handle usually.
+In this repository, we can try AI data scientist that behaves like a human data scientist. Recently, LLM has been improved a lot, we believe it is now possible for an LLM to solve problems that data scientist handle usually. For example, LLMs are already being used to write research papers in place of human researchers([AI-Scientist](https://github.com/SakanaAI/AI-Scientist)).  
+The article about this project is [here](https://medium.com/@hirok4/ai-data-scientist-ef58d24a1efb).
 
 <br></br>
 
