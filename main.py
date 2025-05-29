@@ -38,10 +38,10 @@ def markdown_to_notebook(md_text: str, output_path: str):
     with open(out, "w", encoding="utf-8") as f:
         nbformat.write(nb, f)
 
-    print(f"Notebook written to: {output_path}")
+    print("Finish creating", output_path)
 
 
-def run_notebook(notebook_path, output_path="executed_notebook.ipynb"):
+def run_notebook(notebook_path, output_path):
     try:
         # Load the notebook
         with open(notebook_path) as f:
@@ -54,7 +54,11 @@ def run_notebook(notebook_path, output_path="executed_notebook.ipynb"):
         with open(output_path, "w") as f:
             nbformat.write(notebook, f)
 
-        print("Notebook executed successfully.")
+        print(
+            "Finish running {0}. Executed file is {1}.".format(
+                notebook_path, output_path
+            )
+        )
         return None
 
     except Exception as e:
@@ -123,39 +127,50 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
         "Reporting: Report results and present insights."
     ).format(detail_web_link, data_folder, eval_score_path, eval_info)
 
+    print("Pass prompt to LLM api...")
     response = model.generate_content([original_objective, train_data_path])
-    markdown_to_notebook(response.text, "generated_with_gemini_0.ipynb")
+    generated_notebook_name = "generated_with_gemini_0.ipynb"
+    executed_notebook_name = "executed_notebook_0.ipynb"
+    markdown_to_notebook(response.text, generated_notebook_name)
     run_notebook_with_retry(
         model,
         retry_num,
-        "generated_with_gemini_0.ipynb",
-        "executed_notebook_0.ipynb",
+        generated_notebook_name,
+        executed_notebook_name,
         original_objective,
     )
     eval_score = load_eval_score(eval_score_path)
-    print("0: Evaluation score {0}".format(eval_score))
+    eval_res = {0: eval_score}
+    print("0: Evaluation score {0}\n".format(eval_score))
 
     for i in range(iter_num):
+        generated_notebook_name = "generated_with_gemini_{0}.ipynb".format(i + 1)
+        executed_notebook_name = "executed_notebook_{0}.ipynb".format(i + 1)
+        print("Pass prompt to LLM api...")
         response = model.generate_content(
             [
                 "Read the attached Jupyter notebook and plan how to improve the evaluation score."
                 "Then, implement Python code to improve the evaluation score in markdown format.\n"
                 "The original objective is: {0}".format(original_objective),
-                "executed_notebook_{0}.ipynb".format(i),
+                executed_notebook_name,
             ]
         )
-        markdown_to_notebook(
-            response.text, "generated_with_gemini_{0}.ipynb".format(i + 1)
-        )
+        markdown_to_notebook(response.text, generated_notebook_name)
         run_notebook_with_retry(
             model,
             retry_num,
-            "generated_with_gemini_{0}.ipynb".format(i + 1),
-            "executed_notebook_{0}.ipynb".format(i + 1),
+            generated_notebook_name,
+            executed_notebook_name,
             original_objective,
         )
         eval_score = load_eval_score(eval_score_path)
-        print("{0}: Evaluation score {1}".format(i + 1, eval_score))
+        eval_res[i] = eval_score
+        print("{0}: Evaluation score {1}\n".format(i + 1, eval_score))
+
+    # Output all evaluation scores
+    print("~~~~~~~~~~ Evaluation scores ~~~~~~~~~~")
+    for k, v in eval_res.items():
+        print(f"{k}: {v}")
 
 
 if __name__ == "__main__":
