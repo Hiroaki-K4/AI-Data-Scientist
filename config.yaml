@@ -5,5 +5,5 @@ setting:
   # train_data_path: data/nyc_taxi/train.csv
   # detail_web_link: https://www.kaggle.com/competitions/nyc-taxi-trip-duration/
   model_name: gemini-2.5-flash-preview-04-17
-  iter_num: 5
+  iter_num: 4
   retry_num: 8

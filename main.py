@@ -164,7 +164,7 @@ def main(api_key, train_data_path, detail_web_link, model_name, iter_num, retry_
             original_objective,
         )
         eval_score = load_eval_score(eval_score_path)
-        eval_res[i] = eval_score
+        eval_res[i + 1] = eval_score
         print("{0}: Evaluation score {1}\n".format(i + 1, eval_score))
 
     # Output all evaluation scores
